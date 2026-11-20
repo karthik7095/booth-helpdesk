@@ -1,0 +1,4 @@
+-- AlterTable
+ALTER TABLE "voters" ADD COLUMN IF NOT EXISTS "is_deceased" BOOLEAN NOT NULL DEFAULT false,
+ADD COLUMN IF NOT EXISTS "deceased_by" TEXT,
+ADD COLUMN IF NOT EXISTS "deceased_at" TIMESTAMP(3);

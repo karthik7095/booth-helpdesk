@@ -1,0 +1,16 @@
+-- Merging decision tree log ---
+manifest
+ADDED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml:2:13-83
+INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml:2:13-83
+	package
+		INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml
+	xmlns:android
+		ADDED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml:2:23-81
+uses-sdk
+INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml reason: use-sdk injection requested
+INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml
+INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml
+	android:targetSdkVersion
+		INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml
+	android:minSdkVersion
+		INJECTED from /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/tmp/ProcessLibraryManifest/release/tempAndroidManifest5674616958092927224.xml

@@ -1,0 +1,11 @@
+{
+  "name": "Booth Help Desk",
+  "short_name": "Help Desk",
+  "description": "Search voters, booths and families, and print or share voter slips.",
+  "start_url": "/web",
+  "scope": "/web",
+  "display": "standalone",
+  "background_color": "#F6F9FF",
+  "theme_color": "#0C4EF0",
+  "icons": [{ "src": "/web-icon.png", "sizes": "1024x1024", "type": "image/png", "purpose": "any" }]
+}

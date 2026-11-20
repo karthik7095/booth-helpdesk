@@ -1,0 +1,59 @@
+appId: com.iramediaconcepts.voterrollconverter
+productName: Voter Roll Converter
+directories:
+  output: dist
+  buildResources: build
+files:
+  - src/**/*
+  - package.json
+# Native and worker code must live outside the asar archive.
+asarUnpack:
+  - "**/node_modules/sharp/**"
+  - "**/node_modules/@img/**"
+  - "**/node_modules/tesseract.js/**"
+  - "**/node_modules/tesseract.js-core/**"
+# OCR models fetched with `npm run roll:models` (packages/roll-converter/tessdata).
+extraResources:
+  - from: ../../packages/roll-converter/tessdata
+    to: tessdata
+    filter: ["*.traineddata"]
+# Ad-hoc signs the bundle when no Developer ID certificate is available (see the script).
+afterSign: scripts/adhoc-sign.cjs
+mac:
+  category: public.app-category.productivity
+  target: [dmg, zip]
+  # Used only when a Developer ID certificate is in the keychain; see README "Signing".
+  hardenedRuntime: true
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.plist
+  gatekeeperAssess: false
+win:
+  target: [nsis]
+  icon: build/icon.ico
+  # Every Windows binary goes through scripts/sign-windows.cjs, which signs
+  # with whatever service WIN_SIGN_CMD names and does nothing when it is unset
+  # (see README "Signing"). publisherName must match the certificate's CN.
+  signtoolOptions:
+    sign: scripts/sign-windows.cjs
+    publisherName: IRA Media Concepts
+    # One pass per file; the default dual sha1+sha256 would call the hook twice.
+    signingHashAlgorithms: [sha256]
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  # The installer and uninstaller must share one icon. When they differ, an
+  # installer cross-built on macOS gets an uninstaller whose checksum is wrong
+  # (electron-builder issue #10258): NSIS patches the uninstaller icon into the
+  # stub before computing the checksum, and electron-builder's wine-free
+  # extractor does not. Identical icons make that patch a no-op. Rebuild the
+  # .ico from icon.png with scripts/make-ico.mjs.
+  installerIcon: build/icon.ico
+  uninstallerIcon: build/icon.ico
+linux:
+  target: [AppImage]
+# In-app updates (src/updater.mjs). The feed files (latest.yml, latest-mac.yml,
+# blockmaps) are staged next to the installers by `npm run desktop:stage` and
+# served by the dashboard's public /api/downloads route.
+publish:
+  provider: generic
+  url: https://voters.iramediaconcepts.com/api/downloads

@@ -1,0 +1,200 @@
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/preflight.css" layer(base);
+@import "tailwindcss/utilities.css";
+@import "nativewind/theme";
+
+/* ─── Theme: design tokens (light / dark) ─────────────────────────
+   Values are space-separated RGB channels so Tailwind can apply
+   opacity modifiers (e.g. bg-primary/90).
+
+   1. :root              — light defaults (all platforms)
+   2. @media dark :root  — dark defaults; nativewind maps this to
+                           Appearance.getColorScheme() on native.
+   3. :root.dark / :root.light — higher specificity for web class toggle. */
+@layer theme {
+  :root {
+    /* Brand */
+    --primary: 12 78 240; /* #0C4EF0 */
+    --primary-foreground: 255 255 255;
+    --primary-dark: 4 29 122; /* #041D7A */
+    --primary-light: 230 238 255; /* #E6EEFF */
+
+    /* Status */
+    --success: 14 184 154; /* #0EB89A */
+    --success-foreground: 255 255 255;
+    --warning: 255 200 61;
+    --warning-foreground: 4 29 122;
+    --brand-accent: 254 144 10; /* #FE900A */
+    --brand-accent-foreground: 255 255 255;
+    --destructive: 231 0 11;
+
+    /* Surfaces */
+    --background: 246 249 255; /* #F6F9FF */
+    --card: 255 255 255;
+    --popover: 255 255 255;
+    --popover-foreground: 4 29 122;
+
+    /* Text */
+    --foreground: 4 29 122; /* #041D7A */
+    --muted-foreground: 99 112 148; /* #637094 */
+
+    /* Subtle fills (hover / pressed / chips) */
+    --secondary: 230 238 255;
+    --secondary-foreground: 4 29 122;
+    --muted: 230 238 255;
+    --accent: 230 238 255;
+    --accent-foreground: 4 29 122;
+
+    /* Lines */
+    --border: 219 227 243; /* #DBE3F3 */
+    --input: 219 227 243;
+    --ring: 12 78 240;
+  }
+
+  @media (prefers-color-scheme: dark) {
+    :root {
+    /* Brand */
+    --primary: 79 134 255; /* #4F86FF */
+    --primary-foreground: 255 255 255;
+    --primary-dark: 4 29 122;
+    --primary-light: 230 238 255;
+
+    /* Status */
+    --success: 52 211 180;
+    --success-foreground: 1 9 59;
+    --warning: 255 212 102;
+    --warning-foreground: 1 9 59;
+    --brand-accent: 255 166 64;
+    --brand-accent-foreground: 1 9 59;
+    --destructive: 255 100 103;
+
+    /* Surfaces */
+    --background: 1 9 59; /* #01093B */
+    --card: 8 24 92; /* #08185C */
+    --popover: 8 24 92;
+    --popover-foreground: 246 249 255;
+
+    /* Text */
+    --foreground: 246 249 255;
+    --muted-foreground: 160 174 210;
+
+    /* Subtle fills (hover / pressed / chips) */
+    --secondary: 12 37 120; /* #0C2578 */
+    --secondary-foreground: 230 238 255;
+    --muted: 12 37 120;
+    --accent: 12 37 120;
+    --accent-foreground: 230 238 255;
+
+    /* Lines */
+    --border: 22 46 128; /* #162E80 */
+    --input: 22 46 128;
+    --ring: 79 134 255;
+    }
+  }
+
+  :root.dark {
+    /* Brand */
+    --primary: 79 134 255; /* #4F86FF */
+    --primary-foreground: 255 255 255;
+    --primary-dark: 4 29 122;
+    --primary-light: 230 238 255;
+
+    /* Status */
+    --success: 52 211 180;
+    --success-foreground: 1 9 59;
+    --warning: 255 212 102;
+    --warning-foreground: 1 9 59;
+    --brand-accent: 255 166 64;
+    --brand-accent-foreground: 1 9 59;
+    --destructive: 255 100 103;
+
+    /* Surfaces */
+    --background: 1 9 59; /* #01093B */
+    --card: 8 24 92; /* #08185C */
+    --popover: 8 24 92;
+    --popover-foreground: 246 249 255;
+
+    /* Text */
+    --foreground: 246 249 255;
+    --muted-foreground: 160 174 210;
+
+    /* Subtle fills (hover / pressed / chips) */
+    --secondary: 12 37 120; /* #0C2578 */
+    --secondary-foreground: 230 238 255;
+    --muted: 12 37 120;
+    --accent: 12 37 120;
+    --accent-foreground: 230 238 255;
+
+    /* Lines */
+    --border: 22 46 128; /* #162E80 */
+    --input: 22 46 128;
+    --ring: 79 134 255;
+  }
+
+  :root.light {
+    /* Brand */
+    --primary: 12 78 240; /* #0C4EF0 */
+    --primary-foreground: 255 255 255;
+    --primary-dark: 4 29 122; /* #041D7A */
+    --primary-light: 230 238 255; /* #E6EEFF */
+
+    /* Status */
+    --success: 14 184 154; /* #0EB89A */
+    --success-foreground: 255 255 255;
+    --warning: 255 200 61;
+    --warning-foreground: 4 29 122;
+    --brand-accent: 254 144 10; /* #FE900A */
+    --brand-accent-foreground: 255 255 255;
+    --destructive: 231 0 11;
+
+    /* Surfaces */
+    --background: 246 249 255; /* #F6F9FF */
+    --card: 255 255 255;
+    --popover: 255 255 255;
+    --popover-foreground: 4 29 122;
+
+    /* Text */
+    --foreground: 4 29 122; /* #041D7A */
+    --muted-foreground: 99 112 148; /* #637094 */
+
+    /* Subtle fills (hover / pressed / chips) */
+    --secondary: 230 238 255;
+    --secondary-foreground: 4 29 122;
+    --muted: 230 238 255;
+    --accent: 230 238 255;
+    --accent-foreground: 4 29 122;
+
+    /* Lines */
+    --border: 219 227 243; /* #DBE3F3 */
+    --input: 219 227 243;
+    --ring: 12 78 240;
+  }
+}
+
+@theme inline {
+  --color-primary: rgb(var(--primary));
+  --color-primary-foreground: rgb(var(--primary-foreground));
+  --color-primary-dark: rgb(var(--primary-dark));
+  --color-primary-light: rgb(var(--primary-light));
+  --color-success: rgb(var(--success));
+  --color-success-foreground: rgb(var(--success-foreground));
+  --color-warning: rgb(var(--warning));
+  --color-warning-foreground: rgb(var(--warning-foreground));
+  --color-brand-accent: rgb(var(--brand-accent));
+  --color-brand-accent-foreground: rgb(var(--brand-accent-foreground));
+  --color-card: rgb(var(--card));
+  --color-secondary: rgb(var(--secondary));
+  --color-secondary-foreground: rgb(var(--secondary-foreground));
+  --color-background: rgb(var(--background));
+  --color-popover: rgb(var(--popover));
+  --color-popover-foreground: rgb(var(--popover-foreground));
+  --color-muted: rgb(var(--muted));
+  --color-muted-foreground: rgb(var(--muted-foreground));
+  --color-destructive: rgb(var(--destructive));
+  --color-foreground: rgb(var(--foreground));
+  --color-border: rgb(var(--border));
+  --color-input: rgb(var(--input));
+  --color-ring: rgb(var(--ring));
+  --color-accent: rgb(var(--accent));
+  --color-accent-foreground: rgb(var(--accent-foreground));
+}

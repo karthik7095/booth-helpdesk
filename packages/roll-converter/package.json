@@ -1,0 +1,28 @@
+{
+  "name": "@voter/roll-converter",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Convert ECI electoral roll PDFs (Marathi, English or Telugu) into Excel voter lists by OCR.",
+  "main": "./src/index.mjs",
+  "exports": {
+    ".": "./src/index.mjs"
+  },
+  "bin": {
+    "roll2xlsx": "./src/cli.mjs"
+  },
+  "scripts": {
+    "convert": "node src/cli.mjs",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "@napi-rs/canvas": "^0.1.100",
+    "exceljs": "^4.4.0",
+    "pdfjs-dist": "^4.10.38",
+    "sharp": "^0.34.3",
+    "tesseract.js": "^6.0.1"
+  }
+}

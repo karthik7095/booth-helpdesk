@@ -1,0 +1,156 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:" />
+  <title>Voter Roll Converter</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="glow glow-a" aria-hidden="true"></div>
+  <div class="glow glow-b" aria-hidden="true"></div>
+
+  <header class="top">
+    <div class="brand">
+      <span class="mark">V</span>
+      <div>
+        <h1>Voter Roll Converter <span id="appVersion" class="app-version"></span></h1>
+        <p>Electoral roll PDF to Excel voter list, read with on-device OCR.</p>
+      </div>
+    </div>
+    <div class="top-right">
+      <span id="licenseInfo" class="license-info" hidden></span>
+      <div id="updateBar" class="update-bar" hidden>
+        <span id="updateText"></span>
+        <button id="updateBtn" type="button" class="update-btn" hidden></button>
+      </div>
+    <div id="models" class="models" hidden>
+      OCR models are not installed. Run <code>npm run roll:models</code> once, or the first conversion will download them.
+    </div>
+    </div>
+  </header>
+
+  <!-- Licence gate: shown until the server confirms this computer is activated. -->
+  <div id="lock" class="lock" hidden>
+    <div class="lock-card">
+      <span class="mark">V</span>
+      <h2 id="lockTitle">Checking licence…</h2>
+      <p id="lockText" class="lock-text">Contacting the licence server.</p>
+      <form id="activateForm" class="lock-form" hidden>
+        <label for="codeInput">Activation code</label>
+        <input id="codeInput" type="text" autocomplete="off" spellcheck="false" placeholder="VRC-XXXX-XXXX-XXXX" maxlength="19" />
+        <button id="activateBtn" type="submit" class="primary">Activate this computer</button>
+      </form>
+      <div id="lockActions" class="lock-actions" hidden>
+        <button id="retryBtn" type="button" class="secondary">Try again</button>
+        <button id="otherCodeBtn" type="button" class="link">Use a different code</button>
+      </div>
+      <p id="lockError" class="lock-error" hidden></p>
+      <p class="lock-foot">Licences are issued by IRA Media Concepts. The app needs an internet connection to verify this computer each time it opens.</p>
+    </div>
+  </div>
+
+  <main>
+    <div class="mode-tabs" role="tablist" aria-label="Where the roll is read">
+      <button type="button" role="tab" class="mode-tab active" data-mode="local" aria-selected="true">
+        <strong>Local</strong><span>Read on this computer. Works offline.</span>
+      </button>
+      <button type="button" role="tab" class="mode-tab" data-mode="cloud" aria-selected="false">
+        <strong>Cloud</strong><span>Unclear entries re-read on the IRA server. Saves as <em>.cloud.xlsx</em>.</span>
+      </button>
+    </div>
+    <section id="drop" class="drop" tabindex="0" aria-label="Drop PDF files here">
+      <div class="drop-inner">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/><path d="M12 18v-6"/><path d="m9 15 3-3 3 3"/>
+        </svg>
+        <p class="drop-title">Drop electoral roll PDFs here</p>
+        <p class="drop-sub">or <button id="choose" type="button" class="link">choose files</button></p>
+        <p class="drop-hint">Supports multiple PDFs &bull; PDF files only</p>
+      </div>
+    </section>
+
+    <section class="options">
+      <div class="field">
+        <label for="secondary">Secondary language <span class="tip" title="English rolls only: names, relation names and section names are also written in this language, next to the English columns. Converted on the IRA server, so it needs an internet connection.">i</span></label>
+        <div class="select-wrap">
+          <svg class="select-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+          <select id="secondary">
+            <option value="tel" selected>Telugu</option>
+            <option value="hin">Hindi</option>
+            <option value="tel,hin">Telugu + Hindi</option>
+            <option value="">None (English only)</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field">
+        <label for="workers">OCR workers <span class="tip" title="How many pages are read in parallel. 4 suits most laptops; use 2 on older machines.">i</span></label>
+        <div class="select-wrap">
+          <svg class="select-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="4" width="18" height="7" rx="2"/><rect x="3" y="13" width="18" height="7" rx="2"/><path d="M7 7.5h.01M7 16.5h.01"/></svg>
+          <select id="workers">
+            <option value="2">2</option>
+            <option value="4" selected>4</option>
+            <option value="6">6</option>
+            <option value="8">8</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="field convert">
+        <button id="convert" type="button" class="primary" disabled>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m12 3 1.9 5.1L19 10l-5.1 1.9L12 17l-1.9-5.1L5 10l5.1-1.9z"/><path d="M19 17l.7 1.8 1.8.7-1.8.7L19 22l-.7-1.8-1.8-.7 1.8-.7z"/><path d="M5 2l.5 1.3L6.8 4l-1.3.5L5 5.8l-.5-1.3L3.2 4l1.3-.7z"/></svg>
+          <span class="label">Convert</span>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12h14"/><path d="m13 6 6 6-6 6"/></svg>
+        </button>
+      </div>
+    </section>
+
+    <section class="files">
+      <ul id="list" class="list"></ul>
+      <p id="status" class="status"></p>
+    </section>
+
+    <section class="history" id="historySection">
+      <div class="history-head">
+        <div>
+          <h2>Conversion History</h2>
+          <p class="hint">All converted files are shown here. You can open the Excel and view the extracted voter list.</p>
+        </div>
+        <div class="history-tools">
+          <label class="search">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input id="historySearch" type="search" placeholder="Search files..." aria-label="Search files" />
+          </label>
+          <select id="historyFilter" aria-label="Filter by status">
+            <option value="all">All status</option>
+            <option value="ok">Completed</option>
+            <option value="warn">Count mismatch</option>
+            <option value="failed">Failed</option>
+          </select>
+        </div>
+      </div>
+      <div class="tbl">
+        <table class="history-table">
+          <thead>
+            <tr>
+              <th class="num">#</th>
+              <th>File name</th>
+              <th>Converted on</th>
+              <th class="num">Voters</th>
+              <th class="num">Duration</th>
+              <th>Status</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody id="historyBody"></tbody>
+        </table>
+        <p id="historyEmpty" class="empty">Converted files will be listed here.</p>
+      </div>
+    </section>
+  </main>
+
+  <div id="menu" class="menu" hidden></div>
+  <script src="renderer.js"></script>
+</body>
+</html>

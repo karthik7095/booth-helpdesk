@@ -1,0 +1,24 @@
+{
+  "name": "@voter/desktop",
+  "version": "0.5.4",
+  "private": true,
+  "description": "Voter Roll Converter: turn ECI electoral roll PDFs into Excel voter lists.",
+  "type": "module",
+  "main": "src/main.mjs",
+  "scripts": {
+    "start": "electron .",
+    "build": "electron-builder",
+    "build:mac": "electron-builder --mac",
+    "build:win": "electron-builder --win"
+  },
+  "dependencies": {
+    "@voter/roll-converter": "*",
+    "electron-updater": "^6.8.9",
+    "node-machine-id": "^1.1.12"
+  },
+  "devDependencies": {
+    "electron": "36.9.5",
+    "electron-builder": "^26.0.12"
+  },
+  "author": "IRA Media Concepts"
+}

@@ -1,0 +1,19 @@
+{
+  "cli": {
+    "version": ">= 16.0.0",
+    "appVersionSource": "local"
+  },
+  "build": {
+    "production": {
+      "channel": "booth",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "EXPO_PUBLIC_API_URL": "https://voters.nabeenmultimedia.com/backend",
+        "EXPO_PUBLIC_MSG91_WIDGET_ID": "366a6e6a3059373336313133",
+        "EXPO_PUBLIC_MSG91_TOKEN_AUTH": "581545TRrxqlHo6acf554dP1"
+      }
+    }
+  }
+}

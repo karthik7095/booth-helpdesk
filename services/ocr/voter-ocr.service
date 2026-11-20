@@ -1,0 +1,30 @@
+[Unit]
+Description=Voter roll OCR service (Surya, CPU)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/voter-management/ocr
+ExecStart=/opt/voter-management/ocr/venv/bin/python server.py
+Environment=TORCH_DEVICE=cpu
+Environment=HF_HOME=/opt/voter-management/ocr/cache
+Environment=OMP_NUM_THREADS=3
+Environment=OCR_THREADS=3
+Environment=OCR_DTYPE=bfloat16
+Restart=on-failure
+RestartSec=10
+# Never let OCR starve the database, API or dashboard on this shared box:
+# a hard memory ceiling (killed and restarted if exceeded), at most 3 of 4
+# cores, and lower scheduling priority than everything else.
+MemoryMax=3500M
+MemorySwapMax=0
+CPUQuota=300%
+Nice=10
+User=voter-ocr
+Group=voter-ocr
+NoNewPrivileges=yes
+ProtectSystem=full
+PrivateTmp=yes
+
+[Install]
+WantedBy=multi-user.target

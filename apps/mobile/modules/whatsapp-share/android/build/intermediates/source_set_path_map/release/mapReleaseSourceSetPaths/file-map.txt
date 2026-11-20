@@ -1,0 +1,7 @@
+expo.modules.whatsappshare.whatsapp-share-pngs-0 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/generated/res/pngs/release
+expo.modules.whatsappshare.whatsapp-share-resValues-1 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/generated/res/resValues/release
+expo.modules.whatsappshare.whatsapp-share-mergeReleaseResources-2 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/incremental/release/mergeReleaseResources/merged.dir
+expo.modules.whatsappshare.whatsapp-share-mergeReleaseResources-3 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/incremental/release/mergeReleaseResources/stripped.dir
+expo.modules.whatsappshare.whatsapp-share-release-4 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/build/intermediates/merged_res/release/mergeReleaseResources
+expo.modules.whatsappshare.whatsapp-share-main-5 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/src/main/res
+expo.modules.whatsappshare.whatsapp-share-release-6 /Users/karthik/Documents/Personal/booth-helpdesk/apps/mobile/modules/whatsapp-share/android/src/release/res

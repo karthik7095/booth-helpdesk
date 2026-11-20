@@ -1,0 +1,87 @@
+{
+  "expo": {
+    "name": "Booth Help Desk",
+    "slug": "voter-managment",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/images/booth-icon.png",
+    "scheme": "boothhelpdesk",
+    "userInterfaceStyle": "automatic",
+    "ios": {
+      "icon": "./assets/images/booth-icon.png",
+      "bundleIdentifier": "com.boothhelpdesk.app"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/images/booth-adaptive.png",
+        "backgroundImage": "./assets/images/booth-adaptive-bg.png",
+        "backgroundColor": "#041D7A"
+      },
+      "predictiveBackGestureEnabled": false,
+      "package": "com.boothhelpdesk.app",
+      "permissions": [
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_FINE_LOCATION"
+      ],
+      "versionCode": 2
+    },
+    "web": {
+      "output": "single",
+      "favicon": "./assets/images/booth-icon.png"
+    },
+    "plugins": [
+      "expo-router",
+      [
+        "expo-splash-screen",
+        {
+          "backgroundColor": "#041D7A",
+          "image": "./assets/images/booth-splash.png",
+          "imageWidth": 200,
+          "resizeMode": "contain"
+        }
+      ],
+      "expo-secure-store",
+      "expo-sqlite",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true
+          }
+        }
+      ],
+      "./plugins/with-watermelondb",
+      "./plugins/with-bluetooth-classic",
+      "./plugins/with-whatsapp-queries",
+      "expo-sharing",
+      [
+        "expo-location",
+        {
+          "locationWhenInUsePermission": "Your location is shared with your campaign admin while you use the app, so they can see where booth work is happening."
+        }
+      ]
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "reactCompiler": true
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "8aabcd51-83c6-43ba-a578-cbaeb6dbe46d"
+      }
+    },
+    "owner": "karthik70",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
+    "updates": {
+      "url": "https://u.expo.dev/8aabcd51-83c6-43ba-a578-cbaeb6dbe46d",
+      "checkAutomatically": "ON_LOAD",
+      "fallbackToCacheTimeout": 0,
+      "requestHeaders": {
+        "expo-channel-name": "booth"
+      }
+    }
+  }
+}

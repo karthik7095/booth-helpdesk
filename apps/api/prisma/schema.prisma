@@ -1,0 +1,589 @@
+// Voter management — Postgres schema.
+// Run `npm run db:migrate -w @voter/api` after editing.
+
+generator client {
+  provider     = "prisma-client"
+  output       = "../src/generated/prisma"
+  runtime      = "nodejs"
+  moduleFormat = "esm"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum AdminRole {
+  super_admin
+  /// Signs in to the same dashboard but sees only `assemblyId`'s constituency.
+  constituency_admin
+  /// Hidden role: never listed, has every super-admin power, and alone manages desktop-app licences.
+  developer
+}
+
+/// Admin account for the web dashboard. Super admins manage every
+/// constituency; constituency admins are created when one is onboarded and
+/// are limited to it.
+model AdminUser {
+  id           String    @id @default(cuid())
+  email        String    @unique
+  passwordHash String    @map("password_hash")
+  name         String
+  role         AdminRole @default(super_admin)
+  /// Set only for constituency admins.
+  assemblyId   String?   @map("assembly_id")
+  isActive     Boolean   @default(true) @map("is_active")
+  lastLoginAt  DateTime? @map("last_login_at")
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  assembly        Assembly?        @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  createdPins     AccessPin[]
+  printResets     PrintReset[]
+  activationCodes ActivationCode[]
+
+  @@index([assemblyId])
+  @@map("admin_users")
+}
+
+enum DeviceStatus {
+  active
+  revoked
+}
+
+/// A licence for the desktop converter: handed to a client, it activates up to
+/// `maxDevices` computers. Disabling or deleting it locks those computers out.
+model ActivationCode {
+  id          String    @id @default(cuid())
+  /// Generated, e.g. "VRC-7K3M-9QWD-2HXP" (stored without separators).
+  code        String    @unique
+  /// Who the code was issued to.
+  label       String
+  maxDevices  Int       @default(1) @map("max_devices")
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  createdBy AdminUser? @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  devices   Device[]
+
+  @@map("activation_codes")
+}
+
+/// A computer running the desktop converter, bound to its hardware id.
+model Device {
+  id               String       @id @default(cuid())
+  /// sha256 of the machine's hardware id.
+  fingerprint      String       @unique
+  name             String
+  platform         String
+  osVersion        String?      @map("os_version")
+  appVersion       String?      @map("app_version")
+  status           DeviceStatus @default(active)
+  activationCodeId String       @map("activation_code_id")
+  firstSeenAt      DateTime     @default(now()) @map("first_seen_at")
+  lastSeenAt       DateTime     @default(now()) @map("last_seen_at")
+  checkIns         Int          @default(0) @map("check_ins")
+  conversions      Int          @default(0)
+  voters           Int          @default(0)
+  createdAt        DateTime     @default(now()) @map("created_at")
+  updatedAt        DateTime     @updatedAt @map("updated_at")
+
+  activationCode ActivationCode @relation(fields: [activationCodeId], references: [id], onDelete: Cascade)
+
+  @@index([activationCodeId])
+  @@map("devices")
+}
+
+/// An assembly constituency. PINs are issued per constituency.
+model Assembly {
+  id                      String    @id @default(cuid())
+  /// assembly_no on the electoral roll.
+  assemblyNo              Int       @unique @map("assembly_no")
+  nameEn                  String    @map("e_assemblyname")
+  /// Used to build PINs, e.g. state "S29" + code "GD" + 241 -> S29GD241xx.
+  stateCode               String    @default("S29") @map("state_code")
+  code                    String
+  /// Banner shown at the top of the app's home screen. Stored on disk next to
+  /// the API for now, not in cloud storage.
+  bannerPath              String?   @map("banner_path")
+  bannerMime              String?   @map("banner_mime")
+  bannerUpdatedAt         DateTime? @map("banner_updated_at")
+  /// Cover image printed above each voter slip. Separate from the home-screen
+  /// banner: this one is dithered to 1-bit for a 384-dot thermal head, so it
+  /// wants high-contrast artwork rather than a photograph.
+  slipImagePath           String?   @map("slip_image_path")
+  slipImageMime           String?   @map("slip_image_mime")
+  slipImageUpdatedAt      DateTime? @map("slip_image_updated_at")
+  /// Sent with the slip text when an agent shares on WhatsApp; separate from the printer cover.
+  whatsappImagePath       String?   @map("whatsapp_image_path")
+  whatsappImageMime       String?   @map("whatsapp_image_mime")
+  whatsappImageUpdatedAt  DateTime? @map("whatsapp_image_updated_at")
+  /// Heading of the WhatsApp slip, e.g. "KARIMNAGAR MUNICIPAL CORPORATION-2026".
+  electionTitle           String?   @map("election_title")
+  /// Polling day and hours — the same for every voter in the constituency.
+  pollDate                DateTime? @map("poll_date") @db.Date
+  pollTime                String?   @map("poll_time")
+  /// Which booth breakdowns the dashboard and the app show. Community is
+  /// sensitive, so it stays hidden until an admin switches it on.
+  showGenderStats         Boolean   @default(true) @map("show_gender_stats")
+  showReligionStats       Boolean   @default(true) @map("show_religion_stats")
+  showCommunityStats      Boolean   @default(false) @map("show_community_stats")
+  /// Optional voter-screen features in the app — hidden until a super admin
+  /// switches them on for this constituency.
+  enableVoteStatus        Boolean   @default(false) @map("enable_vote_status")
+  enableEnrollment        Boolean   @default(false) @map("enable_enrollment")
+  enableCasteEntry        Boolean   @default(false) @map("enable_caste_entry")
+  enablePartyLoyalty      Boolean   @default(false) @map("enable_party_loyalty")
+  /// Choices for the party loyalty radio buttons; the label is what is stored.
+  partyOptions            String[]  @default(["Lotus", "Hand"]) @map("party_options")
+  /// The Telugu "cut off the cover" caution printed under the slip's cover image.
+  printCautionNote        Boolean   @default(true) @map("print_caution_note")
+  /// Lets each app user upload up to two slip covers of their own and pick
+  /// which one prints, in place of the constituency's cover.
+  allowUserSlipCovers     Boolean   @default(false) @map("allow_user_slip_covers")
+  /// Whether slips print the cover image at all. Off until an admin switches it on.
+  printSlipImage          Boolean   @default(false) @map("print_slip_image")
+  /// A gram panchayat rather than an assembly constituency: voters carry a
+  /// ward number, the app lists wards beside booths, and each ward can have
+  /// its own slip print banner that anyone holding the PIN may upload.
+  isPanchayat             Boolean   @default(false) @map("is_panchayat")
+  /// New app users wait for an admin's approval after entering the PIN
+  /// (AppUserAccess). Off, they are let in until maxAppUsers is reached.
+  requireLoginApproval    Boolean   @default(false) @map("require_login_approval")
+  /// The most app users approved at once here, approval on or off. Set by a super admin.
+  maxAppUsers             Int       @default(5) @map("max_app_users")
+  /// Panchayat slip header, typed in the app's Settings and drawn on the phone:
+  /// the election heading, the line under the candidates, and the Sarpanch
+  /// candidate (one per panchayat) with their party symbol.
+  slipHeading             String?   @map("slip_heading")
+  slipTagline             String?   @map("slip_tagline")
+  sarpanchName            String?   @map("sarpanch_name")
+  sarpanchNameEn          String?   @map("sarpanch_name_en")
+  sarpanchSymbolPath      String?   @map("sarpanch_symbol_path")
+  sarpanchSymbolMime      String?   @map("sarpanch_symbol_mime")
+  sarpanchSymbolUpdatedAt DateTime? @map("sarpanch_symbol_updated_at")
+  /// Municipal corporation: the header reads MAYOR / WARD n CORPORATOR.
+  slipMunicipal           Boolean   @default(false) @map("slip_municipal")
+  /// An image printed above the candidates on every ward's header (a party badge).
+  slipTopImagePath        String?   @map("slip_top_image_path")
+  slipTopImageMime        String?   @map("slip_top_image_mime")
+  slipTopImageUpdatedAt   DateTime? @map("slip_top_image_updated_at")
+  /// A notice for booth agents, shown over the app's home screen until they
+  /// tick that they have read it, then kept as a card at the top. A new text
+  /// (or switching it back on) moves announcementUpdatedAt, so phones ask again.
+  announcementEnabled     Boolean   @default(false) @map("announcement_enabled")
+  announcementTitle       String?   @map("announcement_title")
+  announcementBody        String?   @map("announcement_body")
+  announcementUpdatedAt   DateTime? @map("announcement_updated_at")
+  /// Bumped every time the roll is wiped for a re-upload. Phones compare it on
+  /// sync and download afresh instead of merging a replaced roll into the old one.
+  rollVersion             Int       @default(1) @map("roll_version")
+  /// Off instead of deleted: PINs stop unlocking it and phones holding its
+  /// roll are signed out on their next launch, but nothing is lost.
+  isActive                Boolean   @default(true) @map("is_active")
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+
+  pins             AccessPin[]
+  voters           Voter[]
+  admins           AdminUser[]
+  usage            AppUsageDay[]
+  prints           SlipPrint[]
+  printResets      PrintReset[]
+  booths           Booth[]
+  userSlipCovers   UserSlipCover[]
+  wardPrintBanners WardPrintBanner[]
+  voterPhotoPacks  VoterPhotoPack[]
+  wardCandidates   WardCandidate[]
+  appUserAccess    AppUserAccess[]
+
+  @@map("assemblies")
+}
+
+/// A slip cover an app user uploaded for themselves, one per slot (1 or 2).
+/// Tied to the mobile number rather than a login, so it follows the user to a
+/// new phone or a new sign-in. The image lives on disk; a new upload to a slot
+/// deletes the file it replaces.
+model UserSlipCover {
+  id           String   @id @default(cuid())
+  assemblyId   String   @map("assembly_id")
+  mobileNumber String   @map("mobile_number")
+  slot         Int
+  path         String
+  mime         String
+  bytes        Int
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, mobileNumber, slot])
+  @@map("user_slip_covers")
+}
+
+/// A panchayat ward's slip print banner (the ward's candidate symbol and name),
+/// printed at the top of that ward's voter slips in place of the panchayat's
+/// cover. Any app user holding the panchayat's PIN can replace it; the last
+/// one to do so is recorded. The image lives on disk, like the user covers.
+model WardPrintBanner {
+  id              String   @id @default(cuid())
+  assemblyId      String   @map("assembly_id")
+  wardNo          Int      @map("ward_no")
+  path            String
+  mime            String
+  bytes           Int
+  updatedByName   String?  @map("updated_by_name")
+  updatedByMobile String?  @map("updated_by_mobile")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, wardNo])
+  @@map("ward_print_banners")
+}
+
+/// An app user's standing in one constituency, by mobile number. `pending`
+/// waits for approval (only asked when the constituency requires approval),
+/// `approved` may use the app, `removed` is turned away from this
+/// constituency's PINs until an admin allows them again, approval on or off.
+/// `isAdmin` app users (marked on the dashboard) approve and remove others
+/// from the app's Approvals screen.
+model AppUserAccess {
+  id           String    @id @default(cuid())
+  assemblyId   String    @map("assembly_id")
+  mobileNumber String    @map("mobile_number")
+  fullName     String    @map("full_name")
+  status       String    @default("pending") @db.VarChar(16)
+  isAdmin      Boolean   @default(false) @map("is_admin")
+  /// The top app admin (set on the dashboard): manages everyone, admins included.
+  isMayor      Boolean   @default(false) @map("is_mayor")
+  requestedAt  DateTime  @default(now()) @map("requested_at")
+  decidedAt    DateTime? @map("decided_at")
+  /// Who approved or removed them: an admin's email, or an app admin's name.
+  decidedBy    String?   @map("decided_by")
+  /// The wards they may download, chosen when approved; empty means every ward.
+  wardNos      Int[]     @default([]) @map("ward_nos")
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, mobileNumber])
+  @@index([assemblyId, status])
+  @@map("app_user_access")
+}
+
+/// A panchayat ward's member candidate, typed in the app's Settings: the name
+/// (in the roll's script, and optionally in English) and their symbol. The
+/// phone draws the ward's slip header from this plus the Sarpanch candidate and
+/// saves it as the ward's print banner.
+model WardCandidate {
+  id              String    @id @default(cuid())
+  assemblyId      String    @map("assembly_id")
+  wardNo          Int       @map("ward_no")
+  name            String?
+  nameEn          String?   @map("name_en")
+  symbolPath      String?   @map("symbol_path")
+  symbolMime      String?   @map("symbol_mime")
+  symbolUpdatedAt DateTime? @map("symbol_updated_at")
+  updatedByName   String?   @map("updated_by_name")
+  updatedByMobile String?   @map("updated_by_mobile")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, wardNo])
+  @@map("ward_candidates")
+}
+
+/// One polling station (booth) of a constituency and where it is. The address
+/// is copied onto each voter's e_boothaddress, which phones already sync and
+/// print, so the slip needs no lookup.
+model Booth {
+  id            String   @id @default(cuid())
+  assemblyId    String   @map("assembly_id")
+  /// part_no on the voters.
+  partNo        Int      @map("part_no")
+  /// English, as printed on the slip (thermal printers have no Indic font).
+  address       String
+  /// The address as published, in the roll's own script.
+  addressNative String?  @map("address_native")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, partNo])
+  @@map("booths")
+}
+
+/// A prebuilt SQLite copy of one constituency's roll. The app downloads this
+/// file instead of paging the rows as JSON, which is far cheaper on a phone.
+/// An access PIN generated by a super admin. Anyone holding the PIN can read
+/// the voters of its constituency (optionally narrowed to specific parts).
+model AccessPin {
+  id          String    @id @default(cuid())
+  /// Generated, stored uppercase, e.g. "S29GD241B1".
+  pin         String    @unique
+  /// Free-text note — who the PIN was handed to, or which booth it covers.
+  label       String?
+  assemblyId  String    @map("assembly_id")
+  /// Empty means every part in the constituency; otherwise only these part_no values.
+  partNos     Int[]     @map("part_nos")
+  isActive    Boolean   @default(true) @map("is_active")
+  expiresAt   DateTime? @map("expires_at")
+  lastUsedAt  DateTime? @map("last_used_at")
+  usageCount  Int       @default(0) @map("usage_count")
+  createdById String?   @map("created_by_id")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  assembly  Assembly       @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  createdBy AdminUser?     @relation(fields: [createdById], references: [id], onDelete: SetNull)
+  sessions  LoginSession[]
+
+  @@index([assemblyId])
+  @@map("access_pins")
+}
+
+/// Anyone may sign in with a name and mobile number; the session only unlocks
+/// data once the mobile number is confirmed by OTP (when SMS is configured) and
+/// a valid PIN is entered against it.
+model LoginSession {
+  id            String    @id @default(cuid())
+  fullName      String    @map("full_name")
+  mobileNumber  String    @map("mobile_number")
+  accessPinId   String?   @map("access_pin_id")
+  verifiedAt    DateTime? @map("verified_at")
+  /// When the OTP sent to the mobile number was entered correctly.
+  otpVerifiedAt DateTime? @map("otp_verified_at")
+  /// The app install that signed in (a reinstall gets a new one); null from older builds.
+  deviceId      String?   @map("device_id")
+  lastSeenAt    DateTime  @default(now()) @map("last_seen_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  accessPin    AccessPin?    @relation(fields: [accessPinId], references: [id], onDelete: SetNull)
+  markedVoters Voter[]       @relation("MarkedBy")
+  usage        AppUsageDay[]
+  prints       SlipPrint[]
+
+  @@index([mobileNumber])
+  @@index([accessPinId])
+  @@index([deviceId])
+  @@map("login_sessions")
+}
+
+/// One app user's activity on one calendar day (India time), rolled up from
+/// the heartbeats the app sends while it is open.
+model AppUsageDay {
+  id            String    @id @default(cuid())
+  sessionId     String    @map("session_id")
+  /// The constituency the session's PIN unlocked, so admins see only theirs.
+  assemblyId    String?   @map("assembly_id")
+  date          DateTime  @db.Date
+  /// Times the app was opened or brought back to the foreground.
+  opens         Int       @default(0)
+  activeSeconds Int       @default(0) @map("active_seconds")
+  firstSeenAt   DateTime  @map("first_seen_at")
+  lastSeenAt    DateTime  @map("last_seen_at")
+  /// Last GPS fix reported that day; null when location is off or denied.
+  latitude      Float?
+  longitude     Float?
+  accuracy      Float?
+  locatedAt     DateTime? @map("located_at")
+  /// Human-readable place for the fix, e.g. "Banjara Hills, Hyderabad",
+  /// looked up from OpenStreetMap after the heartbeat is saved.
+  placeName     String?   @map("place_name")
+
+  session  LoginSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  assembly Assembly?    @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([sessionId, date])
+  @@index([assemblyId, date])
+  @@index([date])
+  @@map("app_usage_days")
+}
+
+/// A row of the electoral roll. Column names mirror the source data;
+/// `e_` fields are English and `l_` fields are the local-language versions.
+model Voter {
+  id             String  @id @default(cuid())
+  /// Set when the roll is imported; the roll's own assembly_no is kept alongside it.
+  assemblyId     String? @map("assembly_id")
+  assemblyNo     Int     @map("assembly_no")
+  partNo         Int     @map("part_no")
+  srNo           Int     @map("srno")
+  /// SECTION_NO on the roll — the part's subdivision.
+  sectionNo      Int?    @map("section_no")
+  /// WARD_NO on a gram panchayat roll (the page header of the SEC list); null on assembly rolls.
+  wardNo         Int?    @map("ward_no")
+  eFirstName     String? @map("e_first_name")
+  /// The roll's English name, kept once an agent corrects it in the app; null otherwise.
+  eFirstNameRoll String? @map("e_first_name_roll")
+  /// Elector_Last_Name; rolls carry the surname in its own column.
+  eLastName      String? @map("e_last_name")
+  /// Relation_Name — the father's or husband's name, per RELATION_TYPE.
+  eMiddleName    String? @map("e_middle_name")
+  lFirstName     String? @map("l_first_name")
+  lLastName      String? @map("l_last_name")
+  lMiddleName    String? @map("l_middle_name")
+  /// RELATION_TYPE — F, H, M, describing whose name eMiddleName holds.
+  relationType   String? @map("relation_type") @db.VarChar(10)
+  sex            String? @db.VarChar(10)
+  age            Int?
+  vcardId        String? @map("vcardid")
+  houseNo        String? @map("house_no")
+  lAddress       String? @map("l_address")
+  eAssemblyName  String? @map("e_assemblyname")
+  /// STREET_AREA — the locality line printed above the village.
+  streetArea     String? @map("street_area")
+  eVillage       String? @map("e_village")
+  eBoothAddress  String? @map("e_boothaddress")
+  mobileNo1      String? @map("mobile_no1")
+  religion       String?
+  /// Caste category (OC, BC, SC, ST) — from the roll or picked in the app.
+  community      String?
+  /// BC-A … BC-E when `community` is BC; empty for the other categories.
+  subCategory    String? @map("sub_category")
+  /// The caste, or tribe for ST, entered in the app.
+  caste          String?
+  /// Party loyalty recorded in the app, e.g. "lotus" or "hand".
+  partyLoyalty   String? @map("party_loyalty")
+
+  /// App state — not part of the imported roll.
+  /// Set for voters enrolled from the mobile app rather than an imported sheet.
+  isNewEnrollment   Boolean       @default(false) @map("is_new_enrollment")
+  /// Client-generated id, so a queued enrollment synced twice lands once.
+  clientRef         String?       @unique @map("client_ref")
+  hasVoted          Boolean       @default(false) @map("has_voted")
+  votedAt           DateTime?     @map("voted_at")
+  markedBySessionId String?       @map("marked_by_session_id")
+  markedBy          LoginSession? @relation("MarkedBy", fields: [markedBySessionId], references: [id], onDelete: SetNull)
+  /// An agent has met the voter in the field (shown yellow until they vote).
+  isFound           Boolean       @default(false) @map("is_found")
+  /// A follow-up note for the agents; listed under Follow-up until marked done.
+  remark            String?
+  remarkDone        Boolean       @default(false) @map("remark_done")
+  /// The agent who last wrote the remark, and when, as the phone recorded it.
+  remarkBy          String?       @map("remark_by")
+  remarkAt          DateTime?     @map("remark_at")
+  /// Marked deceased by an agent: kept on the roll (it is the official list) but
+  /// flagged, with who marked it and when, as the phone recorded it.
+  isDeceased        Boolean       @default(false) @map("is_deceased")
+  deceasedBy        String?       @map("deceased_by")
+  deceasedAt        DateTime?     @map("deceased_at")
+
+  assembly Assembly?   @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  prints   SlipPrint[]
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([assemblyNo, partNo, srNo])
+  /// Delta sync pulls everything changed since the phone last synced.
+  @@index([assemblyNo, updatedAt])
+  @@index([assemblyNo, wardNo])
+  @@index([assemblyId])
+  @@index([assemblyNo, partNo])
+  @@index([vcardId])
+  @@index([eFirstName])
+  @@index([houseNo])
+  @@map("voters")
+}
+
+/// One voter slip leaving a phone — printed on the thermal printer or through
+/// the system print dialog. Recorded on the phone first (prints happen
+/// offline) and pushed with the next sync, so the id is the phone's and a
+/// retried push lands once. A household print makes one row per voter.
+model SlipPrint {
+  id         String   @id
+  voterId    String   @map("voter_id")
+  sessionId  String   @map("session_id")
+  /// The constituency the session's PIN unlocked, so admins see only theirs.
+  assemblyId String?  @map("assembly_id")
+  partNo     Int      @map("part_no")
+  /// "printer" for the paired thermal printer, "dialog" for the system dialog.
+  method     String
+  /// Where the phone was when it printed; null when location is off or denied.
+  latitude   Float?
+  longitude  Float?
+  accuracy   Float?
+  /// Looked up from OpenStreetMap after the row is saved, as for usage.
+  placeName  String?  @map("place_name")
+  /// The phone's clock when it printed.
+  printedAt  DateTime @map("printed_at")
+  receivedAt DateTime @default(now()) @map("received_at")
+
+  voter    Voter        @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  session  LoginSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  assembly Assembly?    @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@index([voterId, printedAt])
+  @@index([sessionId, printedAt])
+  @@index([assemblyId, printedAt])
+  @@map("slip_prints")
+}
+
+/// One "reset print count" on a constituency: the slip print records were
+/// deleted and the counts started again. Kept so the dashboard can show when
+/// it last happened, who did it, and how much was cleared.
+model PrintReset {
+  id         String   @id @default(cuid())
+  assemblyId String   @map("assembly_id")
+  /// Null once that admin login is deleted; the name and email stay.
+  adminId    String?  @map("admin_id")
+  adminName  String   @map("admin_name")
+  adminEmail String   @map("admin_email")
+  /// What the counts read just before the reset.
+  prints     Int
+  voters     Int
+  users      Int
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  assembly Assembly   @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+  admin    AdminUser? @relation(fields: [adminId], references: [id], onDelete: SetNull)
+
+  @@index([assemblyId, createdAt])
+  @@map("print_resets")
+}
+
+/// App users switched off by an admin, by mobile number. They are signed out
+/// and cannot sign in again until switched back on.
+model BlockedUser {
+  mobileNumber String   @id @map("mobile_number")
+  blockedById  String?  @map("blocked_by_id")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@map("blocked_users")
+}
+
+/// App installs a switched-off user was signed in on. No one can sign in on
+/// them until the user is switched back on or the app is reinstalled.
+model BlockedDevice {
+  deviceId     String   @id @map("device_id")
+  mobileNumber String   @map("mobile_number")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  @@index([mobileNumber])
+  @@map("blocked_devices")
+}
+
+/// Voter photos for the app, one bundle per ward (or per booth where the roll
+/// has no wards) so a phone downloads only what its user may see. A bundle is
+/// a "VPK1" file: the index (EPIC, offset, length) then the JPEGs back to
+/// back, which the phone unpacks without a zip library.
+model VoterPhotoPack {
+  id         String   @id @default(cuid())
+  assemblyId String   @map("assembly_id")
+  /// "ward" or "part"
+  groupKind  String   @map("group_kind") @db.VarChar(8)
+  groupNo    Int      @map("group_no")
+  path       String
+  bytes      Int
+  count      Int
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  assembly Assembly @relation(fields: [assemblyId], references: [id], onDelete: Cascade)
+
+  @@unique([assemblyId, groupKind, groupNo])
+  @@map("voter_photo_packs")
+}

@@ -1,0 +1,7 @@
+# CPU-only PyTorch comes from the PyTorch index (see scripts/deploy-ocr.sh), so
+# the CUDA wheels (several GB) are never downloaded.
+torch
+# The 0.14 series uses a dedicated recognition model. 0.15+ moved to a vision
+# language model served by llama.cpp, far too heavy for this CPU server.
+surya-ocr>=0.14,<0.15
+pillow

@@ -1,56 +1,70 @@
-# Welcome to your Expo app 👋
+# Voter Management
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+npm workspaces monorepo: an Expo app for the field, a Next.js dashboard for admins, and a Fastify API over Postgres.
+
+| Workspace | What it is |
+| --- | --- |
+| `apps/mobile` | Expo SDK 57 app (expo-router, gluestack-ui v5, NativeWind v5) |
+| `apps/web` | Next.js 16 super-admin dashboard (shadcn/ui, Tailwind v4) |
+| `apps/api` | Fastify 5 API with Prisma 7 on Postgres |
+| `packages/shared` | zod schemas and TypeScript types shared by all three |
+
+## Access model
+
+- A **super admin** signs in to the web dashboard with email + password.
+- The super admin adds **constituencies** and generates **access PINs** for them. The PIN is generated server-side from the constituency codes — `S29` + `GD` + `241` → `S29GD241B1` — and can be scoped to specific parts/booths.
+- In the mobile app **anyone** signs in with a name and mobile number. That session reads nothing until an access PIN is entered; once it is, the holder sees exactly the voters of that PIN's constituency (and parts).
+- Deactivating a PIN in the dashboard cuts off sessions already using it, on their next request.
 
 ## Get started
 
-1. Install dependencies
-
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
-
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### 1. Database + API
 
-### Other setup steps
+```bash
+createdb voter_management                 # or use an existing Postgres
+cp apps/api/.env.example apps/api/.env    # set DATABASE_URL and JWT_SECRET
+npm run db:migrate                        # apply migrations
+npm run db:seed                           # super admin + demo constituency, PIN and voters
+npm run api                               # http://localhost:4000
+```
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+The seed prints the super admin credentials and the generated demo PIN.
 
-## Learn more
+### 2. Web dashboard
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+cp apps/web/.env.example apps/web/.env.local   # API_URL, defaults to http://localhost:4000
+npm run web                                    # http://localhost:3000
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Sign in at `/login`, then manage constituencies and PINs.
 
-## Join the community
+### 3. Mobile app
 
-Join our community of developers creating universal apps.
+```bash
+cp apps/mobile/.env.example apps/mobile/.env   # EXPO_PUBLIC_API_URL
+npm run mobile
+```
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+On a physical device, point `EXPO_PUBLIC_API_URL` at your machine's LAN IP rather than `localhost`.
+
+## API endpoints
+
+| Endpoint | Who |
+| --- | --- |
+| `POST /api/admin/login`, `GET /api/admin/me`, `GET /api/admin/stats` | super admin |
+| `GET/POST /api/admin/assemblies` | super admin |
+| `GET/POST /api/admin/pins`, `PATCH /api/admin/pins/:id` | super admin |
+| `POST /api/auth/login`, `POST /api/auth/pin`, `GET /api/auth/me` | app users |
+| `GET /api/voters`, `GET /api/voters/summary`, `GET /api/voters/:id`, `PATCH /api/voters/:id/voted` | PIN holders |
+
+## Checks
+
+```bash
+npm run typecheck       # every workspace
+npm run build           # shared, api, web
+```

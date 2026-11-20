@@ -1,43 +1,54 @@
 {
-  "name": "voter-managment",
-  "main": "expo-router/entry",
+  "name": "voter-management",
   "version": "1.0.0",
-  "dependencies": {
-    "@expo/ui": "~57.0.14",
-    "expo": "~57.0.18",
-    "expo-constants": "~57.0.16",
-    "expo-device": "~57.0.1",
-    "expo-font": "~57.0.2",
-    "expo-glass-effect": "~57.0.1",
-    "expo-image": "~57.0.3",
-    "expo-linking": "~57.0.8",
-    "expo-router": "~57.0.17",
-    "expo-splash-screen": "~57.0.8",
-    "expo-status-bar": "~57.0.1",
-    "expo-symbols": "~57.0.2",
-    "expo-system-ui": "~57.0.3",
-    "expo-web-browser": "~57.0.2",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
-    "react-native": "0.86.3",
-    "react-native-gesture-handler": "~2.32.0",
-    "react-native-reanimated": "4.5.1",
-    "react-native-safe-area-context": "~5.7.0",
-    "react-native-screens": "~4.26.0",
-    "react-native-web": "~0.21.0",
-    "react-native-worklets": "0.10.1"
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "npm run start --workspace @voter/mobile",
+    "mobile:ios": "npm run ios --workspace @voter/mobile",
+    "mobile:android": "npm run android --workspace @voter/mobile",
+    "mobile:apk": "bash scripts/build-apk.sh",
+    "mobile:update": "cd apps/mobile && EXPO_PUBLIC_API_URL=https://voters.nabeenmultimedia.com/backend EXPO_PUBLIC_MSG91_WIDGET_ID=366a6e6a3059373336313133 EXPO_PUBLIC_MSG91_TOKEN_AUTH=581545TRrxqlHo6acf554dP1 eas update --channel booth --platform android --clear-cache --environment production",
+    "api": "npm run dev --workspace @voter/api",
+    "web": "npm run dev --workspace @voter/web",
+    "build": "npm run build --workspaces --if-present",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "db:generate": "npm run db:generate --workspace @voter/api",
+    "db:migrate": "npm run db:migrate --workspace @voter/api",
+    "db:seed": "npm exec --workspace @voter/api -- prisma db seed",
+    "db:studio": "npm run db:studio --workspace @voter/api",
+    "deploy:prod": "bash scripts/deploy-prod.sh",
+    "domain:setup": "bash scripts/setup-domain.sh",
+    "admin:create": "bash scripts/create-admin-remote.sh",
+    "load:test": "node scripts/load-test.mjs",
+    "load:report": "python3 scripts/load-report.py",
+    "load:users": "node scripts/load-users.mjs",
+    "load:users:report": "python3 scripts/load-users-report.py",
+    "desktop": "npm run start -w @voter/desktop",
+    "desktop:build": "npm run build -w @voter/desktop",
+    "roll:convert": "npm run convert -w @voter/roll-converter --",
+    "panchayat:import": "node scripts/import-panchayat.mjs",
+    "roll:models": "node packages/roll-converter/scripts/fetch-models.mjs",
+    "roll:test": "npm test -w @voter/roll-converter",
+    "desktop:smoke": "electron apps/desktop/src/smoke.mjs",
+    "desktop:stage": "node scripts/stage-desktop.mjs",
+    "deploy:ocr": "bash scripts/deploy-ocr.sh",
+    "deploy:xlit": "bash scripts/deploy-xlit.sh"
   },
   "devDependencies": {
-    "@types/react": "~19.2.2",
     "typescript": "~6.0.3"
   },
-  "scripts": {
-    "start": "expo start",
-    "reset-project": "node ./scripts/reset-project.js",
-    "android": "expo start --android",
-    "ios": "expo start --ios",
-    "web": "expo start --web",
-    "lint": "expo lint"
+  "overrides": {
+    "lightningcss": "1.30.1"
   },
-  "private": true
+  "resolutions": {
+    "lightningcss": "1.30.1"
+  },
+  "engines": {
+    "node": ">=20"
+  }
 }
